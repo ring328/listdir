@@ -1,3 +1,11 @@
+
+/*
+This code was inspired by the following articles:
+- https://gigazine.net/news/20210818-million-files-long-time-ls/
+- http://be-n.com/spw/you-can-list-a-million-files-in-a-directory-but-not-with-ls.html
+
+*/
+
 #define _GNU_SOURCE
 #include <dirent.h> /* Defines DT_* constants */
 #include <fcntl.h>
@@ -23,7 +31,7 @@ struct linux_dirent
     char d_name[];
 };
 
-#define BUF_SIZE 1024*1024*5
+#define BUF_SIZE 1024 * 1024 * 5
 
 int main(int argc, char *argv[])
 {
@@ -46,29 +54,26 @@ int main(int argc, char *argv[])
         if (nread == 0)
             break;
 
-        printf("--------------- nread=%d ---------------\n", nread);
-        printf("inode#    file type  d_reclen  d_off   d_name\n");
         for (long bpos = 0; bpos < nread;)
         {
             d = (struct linux_dirent *)(buf + bpos);
-            printf("%8ld  ", d->d_ino);
             d_type = *(buf + bpos + d->d_reclen - 1);
-            printf("%-10s ", (d_type == DT_REG) ? "regular" : (d_type == DT_DIR) ? "directory"
-                                                          : (d_type == DT_FIFO)  ? "FIFO"
-                                                          : (d_type == DT_SOCK)  ? "socket"
-                                                          : (d_type == DT_LNK)   ? "symlink"
-                                                          : (d_type == DT_BLK)   ? "block dev"
-                                                          : (d_type == DT_CHR)   ? "char dev"
-                                                                                 : "???");
-	    struct stat sb;
-	    int fstatat_flags = 0; //| AT_SYMLINK_NOFOLLOW
-	    int stat_res = fstatat( fd, d->d_name, &sb, fstatat_flags );
-	    off_t st_size = sb.st_size;
 
-            printf("%4d %10jd %d %s\n", d->d_reclen,
-                   (intmax_t)d->d_off, st_size, d->d_name);
+            if (d_type == DT_REG || d_type == DT_DIR)
+            {
+                struct stat sb;
+                int fstatat_flags = 0;
+                int stat_res = fstatat(fd, d->d_name, &sb, fstatat_flags);
+                off_t st_size = sb.st_size;
 
+                printf("%d ", st_size);
 
+                printf("%s", d->d_name);
+                if (d_type == DT_DIR)
+                    printf("/");
+
+                printf("\n");
+            }
 
             bpos += d->d_reclen;
         }
