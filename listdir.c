@@ -15,6 +15,8 @@ This code was inspired by the following articles:
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+// #include <string.h>
+
 
 #define handle_error(msg)   \
     do                      \
@@ -33,7 +35,7 @@ struct linux_dirent
 
 #define BUF_SIZE 1024 * 1024 * 5
 
-void listdir(const char *dirname)
+void listdir(const char *dir_name)
 {
     int fd;
     long nread;
@@ -41,7 +43,7 @@ void listdir(const char *dirname)
     struct linux_dirent *d;
     char d_type;
 
-    fd = open(dirname, O_RDONLY | O_DIRECTORY);
+    fd = open(dir_name, O_RDONLY | O_DIRECTORY);
     if (fd == -1)
         handle_error("open");
 
@@ -59,22 +61,38 @@ void listdir(const char *dirname)
             d = (struct linux_dirent *)(buf + bpos);
             d_type = *(buf + bpos + d->d_reclen - 1);
 
-            if (d_type == DT_REG || d_type == DT_DIR)
+            if (d_type == DT_REG || 
+                (d_type == DT_DIR && d->d_name[0] != '.'))
             {
+                printf("%c ", d_type == DT_REG ? 'f' : 'd');
+
                 struct stat sb;
                 int fstatat_flags = 0;
                 int stat_res = fstatat(fd, d->d_name, &sb, fstatat_flags);
+                if (stat_res == -1)
+                    handle_error("fstatat");
+
                 off_t st_size = sb.st_size;
+                printf("%ld ", st_size);
 
-                printf("%d ", st_size);
-
-                printf("%s", d->d_name);
+                printf("%s/%s", dir_name, d->d_name);
                 if (d_type == DT_DIR)
                     printf("/");
-
-                
-
                 printf("\n");
+
+
+            	// char *subdir_name = (char*)malloc(strlen(dir_name) + 1 + strlen(d->d_name));
+                // strcpy(subdir_name, dir_name);
+                // subdir_name[strlen(dir_name)] = '/';  /* overwrite the null terminater */
+                // strcpy(subdir_name + strlen(dir_name) + 1, d->d_name);
+
+                // if (d->d_name[0] != '.' && d_type == DT_DIR)
+                // {
+                //     printf("[%s]\n", subdir_name);
+                //     printf("goto listdir\n");
+                //     listdir(subdir_name);
+                // }
+                // free(subdir_name);
             }
 
             bpos += d->d_reclen;
@@ -84,8 +102,8 @@ void listdir(const char *dirname)
 
 int main(int argc, char *argv[])
 {
-    char *dirname = argc > 1 ? argv[1] : ".";
-    listdir(dirname);
+    char *dir_name = argc > 1 ? argv[1] : ".";
+    listdir(dir_name);
 
     exit(EXIT_SUCCESS);
 }
