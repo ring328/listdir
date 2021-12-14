@@ -60,8 +60,16 @@ int main(int argc, char *argv[])
                                                           : (d_type == DT_BLK)   ? "block dev"
                                                           : (d_type == DT_CHR)   ? "char dev"
                                                                                  : "???");
-            printf("%4d %10jd  %s\n", d->d_reclen,
-                   (intmax_t)d->d_off, d->d_name);
+	    struct stat sb;
+	    int fstatat_flags = 0; //| AT_SYMLINK_NOFOLLOW
+	    int stat_res = fstatat( fd, d->d_name, &sb, fstatat_flags );
+	    off_t st_size = sb.st_size;
+
+            printf("%4d %10jd %d %s\n", d->d_reclen,
+                   (intmax_t)d->d_off, st_size, d->d_name);
+
+
+
             bpos += d->d_reclen;
         }
     }
