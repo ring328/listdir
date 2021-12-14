@@ -33,7 +33,7 @@ struct linux_dirent
 
 #define BUF_SIZE 1024 * 1024 * 5
 
-int main(int argc, char *argv[])
+void listdir(const char *dirname)
 {
     int fd;
     long nread;
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     struct linux_dirent *d;
     char d_type;
 
-    fd = open(argc > 1 ? argv[1] : ".", O_RDONLY | O_DIRECTORY);
+    fd = open(dirname, O_RDONLY | O_DIRECTORY);
     if (fd == -1)
         handle_error("open");
 
@@ -72,12 +72,20 @@ int main(int argc, char *argv[])
                 if (d_type == DT_DIR)
                     printf("/");
 
+                
+
                 printf("\n");
             }
 
             bpos += d->d_reclen;
         }
     }
+}
+
+int main(int argc, char *argv[])
+{
+    char *dirname = argc > 1 ? argv[1] : ".";
+    listdir(dirname);
 
     exit(EXIT_SUCCESS);
 }
