@@ -66,6 +66,7 @@ void listdir(const char *dir_name)
             {
                 printf("%c ", d_type == DT_REG ? 'f' : 'd');
 
+#ifdef FILE_SIZE
                 struct stat sb;
                 int fstatat_flags = 0;
                 int stat_res = fstatat(fd, d->d_name, &sb, fstatat_flags);
@@ -74,6 +75,7 @@ void listdir(const char *dir_name)
 
                 off_t st_size = sb.st_size;
                 printf("%ld ", st_size);
+#endif
 
                 printf("%s/%s", dir_name, d->d_name);
                 if (d_type == DT_DIR)
