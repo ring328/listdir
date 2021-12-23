@@ -15,8 +15,7 @@ This code was inspired by the following articles:
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-// #include <string.h>
-
+#include <string.h>
 
 #define handle_error(msg)   \
     do                      \
@@ -39,7 +38,7 @@ void listdir(const char *dir_name)
 {
     int fd;
     long nread;
-    char buf[BUF_SIZE];
+    char *buf = (char *)malloc(BUF_SIZE);
     struct linux_dirent *d;
     char d_type;
 
@@ -61,7 +60,7 @@ void listdir(const char *dir_name)
             d = (struct linux_dirent *)(buf + bpos);
             d_type = *(buf + bpos + d->d_reclen - 1);
 
-            if (d_type == DT_REG || 
+            if (d_type == DT_REG ||
                 (d_type == DT_DIR && d->d_name[0] != '.'))
             {
                 printf("%c ", d_type == DT_REG ? 'f' : 'd');
@@ -82,24 +81,25 @@ void listdir(const char *dir_name)
                     printf("/");
                 printf("\n");
 
+                int n = strlen(dir_name) + 1 + strlen(d->d_name);
+                char *subdir_name = (char *)malloc(n);
+                strcpy(subdir_name, dir_name);
+                subdir_name[strlen(dir_name)] = '/'; /* overwrite the null terminater */
+                strcpy(subdir_name + strlen(dir_name) + 1, d->d_name);
 
-            	// char *subdir_name = (char*)malloc(strlen(dir_name) + 1 + strlen(d->d_name));
-                // strcpy(subdir_name, dir_name);
-                // subdir_name[strlen(dir_name)] = '/';  /* overwrite the null terminater */
-                // strcpy(subdir_name + strlen(dir_name) + 1, d->d_name);
-
-                // if (d->d_name[0] != '.' && d_type == DT_DIR)
-                // {
-                //     printf("[%s]\n", subdir_name);
-                //     printf("goto listdir\n");
-                //     listdir(subdir_name);
-                // }
-                // free(subdir_name);
+                if (d->d_name[0] != '.' // exclude "." and ".."
+                    && d_type == DT_DIR)
+                {
+                    listdir(subdir_name);
+                }
+                free(subdir_name);
             }
 
             bpos += d->d_reclen;
         }
     }
+
+    free(buf);
 }
 
 int main(int argc, char *argv[])
