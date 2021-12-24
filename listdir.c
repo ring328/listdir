@@ -17,13 +17,6 @@ This code was inspired by the following articles:
 #include <sys/syscall.h>
 #include <string.h>
 
-#define handle_error(msg)   \
-    do                      \
-    {                       \
-        perror(msg);        \
-        exit(EXIT_FAILURE); \
-    } while (0)
-
 struct linux_dirent
 {
     unsigned long d_ino;
@@ -38,19 +31,25 @@ void listdir(const char *dir_name)
 {
     int fd;
     long nread;
-    char *buf = (char *)malloc(BUF_SIZE);
+    char *buf = (char *)malloc(BUF_SIZE * sizeof(char));
     struct linux_dirent *d;
     char d_type;
 
     fd = open(dir_name, O_RDONLY | O_DIRECTORY);
     if (fd == -1)
-        handle_error("open");
+    {
+        perror("open");
+        return;
+    }
 
     for (;;)
     {
         nread = syscall(SYS_getdents, fd, buf, BUF_SIZE);
         if (nread == -1)
-            handle_error("getdents");
+        {
+            perror("getdents");
+            continue;
+        }
 
         if (nread == 0)
             break;
@@ -70,7 +69,10 @@ void listdir(const char *dir_name)
                 int fstatat_flags = 0;
                 int stat_res = fstatat(fd, d->d_name, &sb, fstatat_flags);
                 if (stat_res == -1)
-                    handle_error("fstatat");
+                {
+                    perror("fstatat");
+                    continue;
+                }
 
                 off_t st_size = sb.st_size;
                 printf("%ld ", st_size);
@@ -82,7 +84,7 @@ void listdir(const char *dir_name)
                 printf("\n");
 
                 int n = strlen(dir_name) + 1 + strlen(d->d_name);
-                char *subdir_name = (char *)malloc(n);
+                char *subdir_name = (char *)malloc(n * sizeof(char) + 1);
                 strcpy(subdir_name, dir_name);
                 subdir_name[strlen(dir_name)] = '/'; /* overwrite the null terminater */
                 strcpy(subdir_name + strlen(dir_name) + 1, d->d_name);
@@ -98,7 +100,7 @@ void listdir(const char *dir_name)
             bpos += d->d_reclen;
         }
     }
-
+    close(fd);
     free(buf);
 }
 
