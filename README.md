@@ -1,4 +1,4 @@
-# listdir
+# listdir for my Rickey
 
 If you want to ls for millions of files in a directory, this is for you.
 
